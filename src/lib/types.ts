@@ -19,6 +19,7 @@ export type Contract = {
   voice_fee_monthly: Money
   voice_enabled: boolean
   voice_monthly_limit: number | null
+  owner_can_change_password: boolean
   signed_on: string | null
   note: string
 }
@@ -29,7 +30,7 @@ export type Owner = {
   username: string
   full_name: string
   is_active: boolean
-  temporary_password: string | null
+  password: string | null
 }
 
 export type CredentialRow = {
@@ -39,7 +40,7 @@ export type CredentialRow = {
   owner: string
   username: string
   full_name: string
-  temporary_password: string | null
+  password: string | null
 }
 
 export type OrganizationRow = {
@@ -53,7 +54,7 @@ export type OrganizationRow = {
 
 export type Organization = OrganizationRow & { contract: Contract; clinics: Clinic[]; owners: Owner[] }
 
-export type Created = { organization: Organization; owner_username: string; owner_temporary_password: string }
+export type Created = { organization: Organization; owner_username: string; owner_password: string }
 
 export type Usage = {
   clinics: number

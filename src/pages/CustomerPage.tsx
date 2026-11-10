@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ApiError, api } from '../lib/api'
+import { generatePassword } from '../lib/password'
 import { day, money } from '../lib/format'
 import type { Contract, Organization, Usage } from '../lib/types'
 import { Login, Password } from '../credential'
@@ -47,6 +48,14 @@ function ContractCard({ org }: { org: Organization }) {
             setDraft({ ...draft, voice_monthly_limit: e.target.value === '' ? null : Number(e.target.value) })
           }
         />
+        <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={draft.owner_can_change_password}
+            onChange={(e) => setDraft({ ...draft, owner_can_change_password: e.target.checked })}
+          />
+          Egasi o'z parolini o'zgartira oladi (o'chiq bo'lsa faqat siz almashtirasiz)
+        </label>
         <div className="flex items-end">
           <Button tone="primary" onClick={() => save.mutate()} disabled={save.isPending}>
             Saqlash
@@ -104,11 +113,13 @@ export function CustomerPage() {
     retry: false,
   })
   const resetPassword = useMutation({
-    mutationFn: (owner: string) =>
+    mutationFn: ({ owner, password }: { owner: string; password: string }) =>
       api(`/organizations/${id}/reset-owner-password/`, {
         method: 'POST',
-        body: { owner },
+        body: { owner, password },
       }),
+    onError: (error) =>
+      window.alert(error instanceof ApiError ? (error.fieldErrors.password ?? "Parol qabul qilinmadi.") : "Xatolik."),
     onSuccess: refresh,
     retry: false,
   })
@@ -148,15 +159,18 @@ export function CustomerPage() {
             <li key={owner.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
               <span className="text-text-secondary sm:min-w-40">{owner.full_name}</span>
               <Login value={owner.username} />
-              <Password value={owner.temporary_password} />
+              <Password value={owner.password} />
               <Button
                 className="sm:ml-auto"
                 onClick={() => {
-                  if (window.confirm('Yangi vaqtinchalik parol beriladi, eski parol ishlamaydi. Davom etasizmi?'))
-                    resetPassword.mutate(owner.id)
+                  const password = window.prompt(
+                    "Yangi parol (eskisi ishlamaydi). Bo'sh qoldirsangiz o'zi yaratiladi:",
+                    generatePassword(),
+                  )
+                  if (password !== null) resetPassword.mutate({ owner: owner.id, password: password.trim() })
                 }}
               >
-                Yangi parol berish
+                Parolni almashtirish
               </Button>
             </li>
           ))}

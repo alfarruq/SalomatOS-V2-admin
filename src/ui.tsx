@@ -46,10 +46,11 @@ export function Button({
 export function Field({
   label,
   error,
+  className = '',
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className={`flex flex-col gap-1 text-sm ${className}`}>
       <span className="text-text-secondary">{label}</span>
       <input {...props} className="min-h-11 rounded-md border border-border bg-surface px-3" />
       {error && <span className="text-danger">{error}</span>}
