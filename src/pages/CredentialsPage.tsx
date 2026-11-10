@@ -19,8 +19,8 @@ export function CredentialsPage() {
       <div>
         <h1 className="text-lg font-semibold">Login va parollar</h1>
         <p className="text-sm text-text-secondary">
-          Mijozlarga berilgan vaqtinchalik parol egasi o'zinikini qo'yguncha ko'rinadi. Keyin faqat login qoladi; unutsa,
-          mijoz sahifasidan yangi parol berasiz.
+          Parolni mijoz yaratganda o'zingiz berasiz va egasi uni o'zgartira olmaydi: so'rasa, mijoz sahifasidan
+          almashtirib berasiz. Egasiga o'zgartirishga ruxsat bersangiz va u o'zgartirsa, parol bu yerda ko'rinmaydi.
         </p>
       </div>
       {query.data.length === 0 && <p className="text-sm text-text-secondary">Mijoz yo'q.</p>}
@@ -37,7 +37,7 @@ export function CredentialsPage() {
               <div className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[1fr_auto_auto] sm:items-center">
                 <span className="text-text-secondary">{row.full_name}</span>
                 <Login value={row.username} />
-                <Password value={row.temporary_password} />
+                <Password value={row.password} />
               </div>
             </Card>
           </li>

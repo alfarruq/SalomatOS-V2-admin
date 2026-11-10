@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, api } from '../lib/api'
+import { generatePassword } from '../lib/password'
 import { day, money } from '../lib/format'
 import type { Created, OrganizationRow, Page } from '../lib/types'
 import { Badge, Button, Card, Failed, Field, Loading } from '../ui'
@@ -15,6 +16,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
     currency: 'USD',
     install: '',
     server: '',
+    password: generatePassword(),
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const set = (key: keyof typeof v) => (e: { target: { value: string } }) => setV({ ...v, [key]: e.target.value })
@@ -26,7 +28,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
           name: v.name,
           contract: { currency: v.currency, install_fee: v.install || '0', server_fee_yearly: v.server || '0' },
           clinic: { name: v.branch || v.name },
-          owner: { username: v.username, full_name: v.owner },
+          owner: { username: v.username, full_name: v.owner, password: v.password },
         },
       }),
     onSuccess: onCreated,
@@ -46,6 +48,17 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
       <Field label="Birinchi filial nomi" value={v.branch} onChange={set('branch')} placeholder={v.name} />
       <Field label="Egasining logini" value={v.username} onChange={set('username')} error={flat('username')} />
       <Field label="Egasining ismi" value={v.owner} onChange={set('owner')} error={flat('full_name')} />
+      <div className="flex items-end gap-2">
+        <Field
+          label="Egasining paroli"
+          value={v.password}
+          onChange={set('password')}
+          error={errors.password}
+          autoComplete="off"
+          className="flex-1"
+        />
+        <Button onClick={() => setV({ ...v, password: generatePassword() })}>Yaratish</Button>
+      </div>
       <Field label="O'rnatish narxi" inputMode="decimal" value={v.install} onChange={set('install')} />
       <Field label="Yillik server narxi" inputMode="decimal" value={v.server} onChange={set('server')} />
       <label className="flex flex-col gap-1 text-sm">
@@ -56,7 +69,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
         </select>
       </label>
       <div className="flex items-end">
-        <Button tone="primary" type="submit" disabled={create.isPending || !v.name || !v.username || !v.owner}>
+        <Button tone="primary" type="submit" disabled={create.isPending || !v.name || !v.username || !v.owner || !v.password}>
           Mijoz qo'shish
         </Button>
       </div>
