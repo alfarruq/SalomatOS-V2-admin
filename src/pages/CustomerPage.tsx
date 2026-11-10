@@ -1,23 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ApiError, api } from '../lib/api'
 import { day, money } from '../lib/format'
-import type { Contract, Created, Organization, Usage } from '../lib/types'
-import { Badge, Button, Card, Failed, Field, Loading } from '../ui'
+import type { Contract, Organization, Usage } from '../lib/types'
+import { Login, Password } from '../credential'
+import { Badge, Button, Card, Facts, Failed, Field, Loading } from '../ui'
 import { PaymentForm } from './PaymentForm'
 import { PaymentsTable } from './PaymentsTable'
-
-function TemporaryPassword({ username, password }: { username: string; password: string }) {
-  return (
-    <Card title="Vaqtinchalik parol (faqat hozir ko'rinadi)">
-      <p className="text-sm">
-        Login: <b>{username}</b> · Parol: <b className="select-all">{password}</b>
-      </p>
-      <p className="text-xs text-text-secondary">Egasiga yetkazing. Birinchi kirgandan keyin u parolni almashtiradi.</p>
-    </Card>
-  )
-}
 
 function ContractCard({ org }: { org: Organization }) {
   const queryClient = useQueryClient()
@@ -72,36 +62,26 @@ function UsageCard({ id }: { id: string }) {
   if (query.isPending) return <Loading />
   if (query.isError) return <Failed onRetry={() => void query.refetch()} />
   const u = query.data
-  const rows: [string, string | number][] = [
+  const rows: [string, string][] = [
     ['Filiallar (faol)', `${u.clinics} (${u.active_clinics})`],
-    ['Xodimlar', u.staff],
-    ['Bemorlar', u.patients],
-    ['Shu oy qabullar', u.appointments_this_month],
-    ['Shu oy muolajalar', u.procedures_this_month],
+    ['Xodimlar', String(u.staff)],
+    ['Bemorlar', String(u.patients)],
+    ['Shu oy qabullar', String(u.appointments_this_month)],
+    ['Shu oy muolajalar', String(u.procedures_this_month)],
     ['Shu oy ovoz', `${u.voice_drafts_this_month} / ${u.voice_monthly_limit}`],
     ['Fayllar', `${u.attachments} (${(u.attachments_bytes / 1_048_576).toFixed(1)} MB)`],
     ['Oxirgi kirish', u.last_login_at ? new Date(u.last_login_at).toLocaleString('ru-RU') : '-'],
   ]
   return (
     <Card title="Foydalanish (faqat sonlar)">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-text-secondary">{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
+      <Facts rows={rows} />
     </Card>
   )
 }
 
 export function CustomerPage() {
   const { id = '' } = useParams()
-  const location = useLocation()
   const queryClient = useQueryClient()
-  const created = (location.state as { created?: Created } | null)?.created
-  const [reset, setReset] = useState<{ username: string; password: string } | null>(null)
   const [paying, setPaying] = useState(false)
   const [branch, setBranch] = useState('')
   const [branchError, setBranchError] = useState<string>()
@@ -125,11 +105,11 @@ export function CustomerPage() {
   })
   const resetPassword = useMutation({
     mutationFn: (owner: string) =>
-      api<{ username: string; temporary_password: string }>(`/organizations/${id}/reset-owner-password/`, {
+      api(`/organizations/${id}/reset-owner-password/`, {
         method: 'POST',
         body: { owner },
       }),
-    onSuccess: (data) => setReset({ username: data.username, password: data.temporary_password }),
+    onSuccess: refresh,
     retry: false,
   })
 
@@ -162,26 +142,52 @@ export function CustomerPage() {
         )}
       </div>
 
-      {created && <TemporaryPassword username={created.owner_username} password={created.owner_temporary_password} />}
-      {reset && <TemporaryPassword username={reset.username} password={reset.password} />}
-
-      <Card title="Hisob-kitob">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-text-secondary">O'rnatish</dt>
-          <dd>
-            {money(b.install_paid, b.currency)} / {money(b.install_fee, b.currency)}
-            {Number(b.install_due) > 0 && <span className="text-danger"> (qarz {money(b.install_due, b.currency)})</span>}
-          </dd>
-          <dt className="text-text-secondary">Server to'langan</dt>
-          <dd className={b.server_overdue ? 'text-danger' : ''}>{day(b.server_paid_until)}</dd>
-          <dt className="text-text-secondary">Ovoz to'langan</dt>
-          <dd>
-            {day(b.voice_paid_until)} {b.voice_active ? <Badge tone="ok">faol</Badge> : <Badge tone="muted">o'chiq</Badge>}
-          </dd>
-          <dt className="text-text-secondary">SMS hisobi</dt>
-          <dd>{b.sms_credits}</dd>
-        </dl>
+      <Card title="Kirish ma'lumotlari" className="border-accent">
+        <ul className="flex flex-col gap-3 text-sm">
+          {org.owners.map((owner) => (
+            <li key={owner.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+              <span className="text-text-secondary sm:min-w-40">{owner.full_name}</span>
+              <Login value={owner.username} />
+              <Password value={owner.temporary_password} />
+              <Button
+                className="sm:ml-auto"
+                onClick={() => {
+                  if (window.confirm('Yangi vaqtinchalik parol beriladi, eski parol ishlamaydi. Davom etasizmi?'))
+                    resetPassword.mutate(owner.id)
+                }}
+              >
+                Yangi parol berish
+              </Button>
+            </li>
+          ))}
+        </ul>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title="Hisob-kitob">
+          <Facts
+            rows={[
+              [
+                "O'rnatish",
+                <span key="i">
+                  {money(b.install_paid, b.currency)} / {money(b.install_fee, b.currency)}
+                  {Number(b.install_due) > 0 && <span className="text-warn"> (qarz {money(b.install_due, b.currency)})</span>}
+                </span>,
+              ],
+              ["Server to'langan", <span key="s" className={b.server_overdue ? 'text-warn' : ''}>{day(b.server_paid_until)}</span>],
+              [
+                "Ovoz to'langan",
+                <span key="v" className="flex items-center gap-2">
+                  {day(b.voice_paid_until)}
+                  {b.voice_active ? <Badge tone="ok">faol</Badge> : <Badge tone="muted">o'chiq</Badge>}
+                </span>,
+              ],
+              ['SMS hisobi', String(b.sms_credits)],
+            ]}
+          />
+        </Card>
+        <UsageCard id={id} />
+      </div>
 
       <ContractCard key={JSON.stringify(org.contract)} org={org} />
 
@@ -200,8 +206,6 @@ export function CustomerPage() {
         )}
         <PaymentsTable organizationId={id} />
       </Card>
-
-      <UsageCard id={id} />
 
       <Card title="Filiallar">
         <ul className="mb-3 flex flex-col gap-2 text-sm">
@@ -224,26 +228,6 @@ export function CustomerPage() {
             Qo'shish
           </Button>
         </div>
-      </Card>
-
-      <Card title="Egalar">
-        <ul className="flex flex-col gap-2 text-sm">
-          {org.owners.map((owner) => (
-            <li key={owner.id} className="flex items-center justify-between gap-2">
-              <span>
-                {owner.full_name} ({owner.username})
-              </span>
-              <Button
-                onClick={() => {
-                  if (window.confirm('Yangi vaqtinchalik parol beriladi, eski parol ishlamaydi. Davom etasizmi?'))
-                    resetPassword.mutate(owner.id)
-                }}
-              >
-                Parolni tiklash
-              </Button>
-            </li>
-          ))}
-        </ul>
       </Card>
     </div>
   )

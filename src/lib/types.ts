@@ -24,13 +24,30 @@ export type Contract = {
 }
 
 export type Clinic = { id: string; name: string; phone_number: string; address: string; is_active: boolean }
-export type Owner = { id: string; username: string; full_name: string; is_active: boolean }
+export type Owner = {
+  id: string
+  username: string
+  full_name: string
+  is_active: boolean
+  temporary_password: string | null
+}
+
+export type CredentialRow = {
+  organization: string
+  organization_name: string
+  is_active: boolean
+  owner: string
+  username: string
+  full_name: string
+  temporary_password: string | null
+}
 
 export type OrganizationRow = {
   id: string
   name: string
   is_active: boolean
   clinic_count: number
+  owner_usernames: string[]
   billing: Billing
 }
 
