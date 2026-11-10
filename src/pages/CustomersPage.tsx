@@ -88,8 +88,7 @@ export function CustomersPage() {
             onCreated={(created) => {
               void queryClient.invalidateQueries({ queryKey: ['organizations'] })
               void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-              // The temporary password is shown once, on the customer page.
-              navigate(`/customers/${created.organization.id}`, { state: { created } })
+              navigate(`/customers/${created.organization.id}`)
             }}
           />
         </Card>
@@ -100,17 +99,20 @@ export function CustomersPage() {
       <ul className="flex flex-col gap-2">
         {query.data?.results.map((org) => (
           <li key={org.id}>
-            <Link to={`/customers/${org.id}`} className="block rounded-lg border border-border bg-surface p-3">
+            <Link to={`/customers/${org.id}`} className="block rounded-lg border border-border bg-surface p-3 hover:bg-bg">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">{org.name}</span>
-                <span className="flex gap-2">
+                <span className="flex flex-wrap gap-2">
                   {!org.is_active && <Badge tone="danger">To'xtatilgan</Badge>}
-                  {org.billing.server_overdue && <Badge tone="danger">Server qarz</Badge>}
+                  {org.billing.server_overdue && <Badge tone="warn">Server muddati o'tgan</Badge>}
                   {Number(org.billing.install_due) > 0 && (
-                    <Badge tone="muted">Qarz {money(org.billing.install_due, org.billing.currency)}</Badge>
+                    <Badge tone="warn">Qarz {money(org.billing.install_due, org.billing.currency)}</Badge>
                   )}
                 </span>
               </div>
+              <p className="mt-1 text-sm text-text-secondary">
+                Login: <code className="text-text">{org.owner_usernames.join(', ') || '-'}</code>
+              </p>
               <p className="text-xs text-text-secondary">
                 {org.clinic_count} filial · server: {day(org.billing.server_paid_until)} · SMS: {org.billing.sms_credits}
               </p>
